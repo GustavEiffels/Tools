@@ -1,5 +1,7 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget,  QPushButton, QVBoxLayout, QLabel
+from PyQt6.QtWidgets import QApplication, QWidget,  QPushButton
+from PyQt6.QtCore import QPropertyAnimation
+
 
 
 class InitApp(QWidget):
@@ -24,10 +26,10 @@ class InitApp(QWidget):
                 font-size: 16px;
                 border-radius: 10px;
                 padding: 10px;
-                transition: ease-in 0.4s;
+
             }
             QPushButton:hover {
-                background-color: #005F73;
+                background-color: black;
             }
         """)
 
