@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Data Orderer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+        h1, h2 {
+            color: #0056b3;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: monospace;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #e9e9e9;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap; /* Wrap long lines */
+            word-wrap: break-word; /* Break words if too long */
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .output-section {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JSON Data Orderer and Extractor</h1>
+
+        <p>Enter the **field names** you want to order, one per line.</p>
+        <label for="fieldOrder">Field Order:</label>
+        <textarea id="fieldOrder" rows="10" placeholder="e.g.,
+BUKRS
+ZUONR
+VBELV
+MATNR
+..."></textarea>
+
+        <p>Paste your **JSON data** here.</p>
+        <label for="jsonData">JSON Data:</label>
+        <textarea id="jsonData" rows="15" placeholder='e.g.,
+{
+  "BUKRS": "1800",
+  "ZUONR": "4000260859",
+  "VBELV": "4000260859",
+  "MATNR": "860104-03822",
+  "FKDAT": "2018-05-24",
+  "KUNNR": "0001268761",
+  "NAME1": "세빈테크",
+  "CEO": "정동철",
+  "GSBER": "B140",
+  "ZTERM": "CPBC",
+  "VKBUR": "114G",
+  "VKBUR_NAME": "부경지사(창원)",
+  "NETWR": "999020.00",
+  "DOWN_PAY": "0.00",
+  "BOE_AMT": "0.00",
+  "OVER_INCOM": "0.00",
+  "OPEN_INT": "0.00",
+  "REC_INT": "0.00",
+  "OPEN_SUM": "0.00",
+  "WAERS": "KRW",
+  "REDUCE_INT": "0.00",
+  "DMBTR": "0.00",
+  "WRBTR": "0.00",
+  "CL_DMBTR": "0.00",
+  "CL_WRBTR": "0.00",
+  "MTART": "",
+  "MAKTX": "",
+  "VKORG": "1846",
+  "VTWEG": "10",
+  "SPART": "40",
+  "AUDAT": "2018-03-26",
+  "PAPH1": "SP300",
+  "VTEXT1": "OTHERS",
+  "PAPH2": "SP30030160",
+  "VTEXT2": "OTHERS",
+  "ZZTERM": ""
+}'></textarea>
+
+        <button onclick="processData()">Process Data</button>
+
+        <div class="output-section">
+            <h2>Ordered Values:</h2>
+            <pre id="output"></pre>
+        </div>
+    </div>
+
+    <script>
+        function getNestedValue(obj, path) {
+            const parts = path.split('.');
+            let current = obj;
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                if (Array.isArray(current)) {
+                    // Handle array: assume part is an index or treat as 'all' for nested objects
+                    // For simplicity, this example will just try to access it as a key for an object in array.
+                    // A more robust solution might require specifying array index (e.g., 'OT_DATA[0].MAKTX')
+                    // For now, we'll try to find a key within objects in the array.
+                    let foundValue = null;
+                    for (const item of current) {
+                        if (typeof item === 'object' && item !== null && item.hasOwnProperty(part)) {
+                            foundValue = item[part];
+                            break;
+                        }
+                    }
+                    current = foundValue;
+                } else if (typeof current === 'object' && current !== null && current.hasOwnProperty(part)) {
+                    current = current[part];
+                } else {
+                    return undefined; // Path not found
+                }
+            }
+            return current;
+        }
+
+        function processData() {
+            const fieldOrderText = document.getElementById('fieldOrder').value;
+            const jsonDataText = document.getElementById('jsonData').value;
+            const outputElement = document.getElementById('output');
+            outputElement.textContent = ''; // Clear previous output
+
+            const fieldOrder = fieldOrderText.split('\n')
+                                             .map(field => field.trim())
+                                             .filter(field => field !== '');
+
+            if (fieldOrder.length === 0) {
+                outputElement.textContent = 'Please enter field names in the "Field Order" box.';
+                outputElement.style.color = 'red';
+                return;
+            }
+
+            let jsonData;
+            try {
+                jsonData = JSON.parse(jsonDataText);
+            } catch (e) {
+                outputElement.textContent = 'Invalid JSON data. Please check your JSON syntax.';
+                outputElement.style.color = 'red';
+                return;
+            }
+
+            let result = '';
+            for (const field of fieldOrder) {
+                // Handle nested paths (e.g., OS_HEADER.ZZSTATUS_TXT)
+                const value = getNestedValue(jsonData, field);
+
+                if (value === undefined || value === null || value === '') {
+                    result += 'XX\n';
+                } else {
+                    result += value + '\n';
+                }
+            }
+
+            outputElement.textContent = result;
+            outputElement.style.color = '#333'; // Reset color
+        }
+    </script>
+</body>
+</html>
